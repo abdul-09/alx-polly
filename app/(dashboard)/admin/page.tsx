@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { deletePoll } from "@/app/lib/actions/poll-actions";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/app/lib/context/auth-context";
+import { useRouter } from "next/navigation";
 
 interface Poll {
   id: string;
@@ -24,10 +26,26 @@ export default function AdminPage() {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [unauthorized, setUnauthorized] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    fetchAllPolls();
-  }, []);
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      // In a real app, you would check if user has admin role
+      // For now, we'll restrict admin access to specific users
+      const adminUsers = ['admin@example.com']; // Replace with actual admin emails
+      if (!adminUsers.includes(user.email || '')) {
+        setUnauthorized(true);
+        return;
+      }
+      fetchAllPolls();
+    }
+  }, [user, authLoading, router]);
 
   const fetchAllPolls = async () => {
     const supabase = createClient();
@@ -54,8 +72,19 @@ export default function AdminPage() {
     setDeleteLoading(null);
   };
 
-  if (loading) {
-    return <div className="p-6">Loading all polls...</div>;
+  if (authLoading || loading) {
+    return <div className="p-6">Loading...</div>;
+  }
+
+  if (unauthorized) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
