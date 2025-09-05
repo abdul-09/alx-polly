@@ -10,6 +10,10 @@ ALX Polly allows authenticated users to create, share, and vote on polls. It's a
 -   **Poll Management**: Users can create, view, and delete their own polls.
 -   **Voting System**: A straightforward system for casting and viewing votes.
 -   **User Dashboard**: A personalized space for users to manage their polls.
+-   **QR Code Sharing**: Generate unique QR codes for easy poll sharing
+-   **Real-time Results**: View live voting results as they come in
+
+## Technology Stack
 
 The application is built with a modern tech stack:
 
@@ -18,6 +22,8 @@ The application is built with a modern tech stack:
 -   **Backend & Database**: [Supabase](https://supabase.io/)
 -   **UI**: [Tailwind CSS](https://tailwindcss.com/) with [shadcn/ui](https://ui.shadcn.com/)
 -   **State Management**: React Server Components and Client Components
+-   **QR Generation**: qrcode.react library
+-   **Form Handling**: React Hook Form with Server Actions
 
 ---
 
@@ -81,9 +87,58 @@ npm install
 
 ### 3. Environment Variables
 
-The project uses Supabase for its backend. An environment file `.env.local` is needed.Use the keys you created during the Supabase setup process.
+The project uses Supabase for its backend. Create a `.env.local` file in the root directory with the following variables:
 
-### 4. Running the Development Server
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+To get these values:
+1. Go to your [Supabase dashboard](https://app.supabase.com/)
+2. Select your project
+3. Navigate to Settings → API
+4. Copy the URL and anon/public key
+
+### 4. Database Setup
+
+1. Run the following SQL in your Supabase SQL editor to create the necessary tables:
+
+```sql
+-- Create polls table
+CREATE TABLE polls (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    options TEXT[] NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create votes table
+CREATE TABLE votes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    poll_id UUID REFERENCES polls(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id),
+    option_index INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies
+CREATE POLICY "Users can view all polls" ON polls FOR SELECT USING (true);
+CREATE POLICY "Users can create their own polls" ON polls FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own polls" ON polls FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own polls" ON polls FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view all votes" ON votes FOR SELECT USING (true);
+CREATE POLICY "Users can create votes" ON votes FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL);
+```
+
+### 5. Running the Development Server
 
 Start the application in development mode:
 
@@ -92,6 +147,61 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:3000`.
+
+## Usage Examples
+
+### Creating a Poll
+
+1. Register or login to your account
+2. Navigate to the Dashboard
+3. Click "Create Poll"
+4. Enter your question and at least two options
+5. Submit the form to create your poll
+6. Share the unique poll URL or QR code with others
+
+### Voting on a Poll
+
+1. Open a shared poll link or scan the QR code
+2. View the poll question and options
+3. Select your preferred option
+4. Submit your vote (anonymous voting is supported)
+5. View real-time results
+
+### Managing Your Polls
+
+1. Go to your Dashboard to see all your created polls
+2. View individual poll results with vote counts
+3. Edit or delete your polls as needed
+4. Monitor voting activity in real-time
+
+## Testing the Application
+
+To run tests:
+
+```bash
+# Run unit tests
+npm test
+
+# Run development server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+## Security Features
+
+This application includes comprehensive security measures:
+
+- **Row Level Security**: Database-level access control
+- **Input Validation**: Server-side validation for all inputs
+- **Authentication**: Secure Supabase Auth integration
+- **Authorization**: Proper ownership verification for all operations
+- **Rate Limiting**: Protection against abuse and DoS attacks
+- **Security Headers**: CSP, XSS protection, and other security headers
 
 Good luck, engineer! This is your chance to step into the shoes of a security professional and make a real impact on the quality and safety of this application. Happy hunting!
 
