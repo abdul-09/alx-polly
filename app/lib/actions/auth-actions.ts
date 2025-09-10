@@ -5,18 +5,23 @@ import { LoginFormData, RegisterFormData } from '../types';
 
 export async function login(data: LoginFormData) {
   const supabase = await createClient();
+  
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email.trim(),
+      password: data.password,
+    });
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email: data.email,
-    password: data.password,
-  });
+    if (error) {
+      console.error('Login error:', error);
+      return { error: 'Invalid credentials' };
+    }
 
-  if (error) {
-    return { error: error.message };
+    return { error: null };
+  } catch (e) {
+    console.error('Unexpected login error:', e);
+    return { error: 'Authentication failed' };
   }
-
-  // Success: no error
-  return { error: null };
 }
 
 export async function register(data: RegisterFormData) {

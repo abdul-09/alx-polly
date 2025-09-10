@@ -13,9 +13,9 @@ export function securityHeaders(request: NextRequest) {
   // Content Security Policy
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Note: unsafe-inline and unsafe-eval are not ideal for production
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' data:",
     "font-src 'self'",
     "connect-src 'self' https://*.supabase.co",
     "frame-ancestors 'none'",
